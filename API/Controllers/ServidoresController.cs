@@ -131,6 +131,14 @@ public class ServidoresController : ControllerBase
     if (string.IsNullOrWhiteSpace(datos.Nombre) ||
         string.IsNullOrWhiteSpace(datos.DireccionIp))
         return BadRequest(new { mensaje = "Nombre e IP son obligatorios." });
+        // Validar formato IPv4 o IPv6
+    if (!System.Net.IPAddress.TryParse(datos.DireccionIp.Trim(), out _))
+    {
+    return BadRequest(new
+    {
+        mensaje = "La dirección IP no tiene un formato válido."
+    });
+}
 
     if (datos.TipoServidorId.HasValue &&
         !await _context.TiposServidor.AnyAsync(t =>
