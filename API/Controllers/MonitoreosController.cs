@@ -161,6 +161,7 @@ public async Task<IActionResult> PutMonitoreo(
         .FirstOrDefaultAsync(m => m.Id == id && m.Activo);
 
     if (monitoreo == null)
+    
         return NotFound(new { mensaje = "Monitoreo no encontrado." });
 
     monitoreo.Activo = false;
