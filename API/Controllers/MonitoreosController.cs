@@ -123,6 +123,53 @@ public class MonitoreosController : ControllerBase
             }
         );
     }
+         // PUT: api/monitoreos/1
+[HttpPut("{id:int}")]
+public async Task<IActionResult> PutMonitoreo(
+    int id, [FromBody] CrearMonitoreoDto datos)
+{
+    var monitoreo = await _context.Monitoreos
+        .FirstOrDefaultAsync(m => m.Id == id && m.Activo);
+
+    if (monitoreo == null)
+        return NotFound(new { mensaje = "Monitoreo no encontrado." });
+
+    var servidorExiste = await _context.Servidores
+        .AnyAsync(s => s.Id == datos.ServidorId && s.Activo);
+
+    if (!servidorExiste)
+        return BadRequest(new
+        {
+            mensaje = "El servidor no existe o está inactivo."
+        });
+
+    monitoreo.ServidorId = datos.ServidorId;
+    monitoreo.Disponible = datos.Disponible;
+    monitoreo.TiempoRespuestaMs = datos.TiempoRespuestaMs;
+    monitoreo.Observaciones = datos.Observaciones;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
+
+// DELETE: api/monitoreos/1
+   [HttpDelete("{id:int}")]
+   public async Task<IActionResult> DeleteMonitoreo(int id)
+{
+    var monitoreo = await _context.Monitoreos
+        .FirstOrDefaultAsync(m => m.Id == id && m.Activo);
+
+    if (monitoreo == null)
+    
+        return NotFound(new { mensaje = "Monitoreo no encontrado." });
+
+    monitoreo.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
 }
 
 // DTO PARA REGISTRAR MONITOREOS

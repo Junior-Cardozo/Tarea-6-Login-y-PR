@@ -23,6 +23,7 @@ public class ServidoresController : ControllerBase
     {
         var servidores = await _context.Servidores
             .AsNoTracking()
+            .Where(s => s.Activo)
             .OrderBy(s => s.Id)
             .Select(s => new
             {
@@ -45,7 +46,7 @@ public class ServidoresController : ControllerBase
     {
         var servidor = await _context.Servidores
             .AsNoTracking()
-            .Where(s => s.Id == id)
+            .Where(s => s.Id == id && s.Activo)
             .Select(s => new
             {
                 s.Id,
@@ -113,8 +114,62 @@ public class ServidoresController : ControllerBase
                 servidor.TipoServidorId,
                 servidor.SistemaOperativoId
             }
+        
         );
     }
+    // PUT: api/servidores/1
+      [HttpPut("{id:int}")]
+      public async Task<IActionResult> PutServidor(
+    int id, [FromBody] CrearServidorDto datos)
+   {
+    var servidor = await _context.Servidores
+        .FirstOrDefaultAsync(s => s.Id == id && s.Activo);
+
+    if (servidor == null)
+        return NotFound(new { mensaje = "Servidor no encontrado." });
+
+    if (string.IsNullOrWhiteSpace(datos.Nombre) ||
+        string.IsNullOrWhiteSpace(datos.DireccionIp))
+        return BadRequest(new { mensaje = "Nombre e IP son obligatorios." });
+
+    if (datos.TipoServidorId.HasValue &&
+        !await _context.TiposServidor.AnyAsync(t =>
+            t.Id == datos.TipoServidorId.Value && t.Activo))
+        return BadRequest(new { mensaje = "Tipo de servidor no válido." });
+
+    if (datos.SistemaOperativoId.HasValue &&
+        !await _context.SistemasOperativos.AnyAsync(s =>
+            s.Id == datos.SistemaOperativoId.Value && s.Activo))
+        return BadRequest(new { mensaje = "Sistema operativo no válido." });
+
+    servidor.Nombre = datos.Nombre.Trim();
+    servidor.DireccionIp = datos.DireccionIp.Trim();
+    servidor.Descripcion = datos.Descripcion;
+    servidor.TipoServidorId = datos.TipoServidorId;
+    servidor.SistemaOperativoId = datos.SistemaOperativoId;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
+
+// DELETE: api/servidores/1
+// Eliminación lógica
+   [HttpDelete("{id:int}")]
+   public async Task<IActionResult> DeleteServidor(int id)
+   {
+    var servidor = await _context.Servidores
+        .FirstOrDefaultAsync(s => s.Id == id && s.Activo);
+
+    if (servidor == null)
+        return NotFound(new { mensaje = "Servidor no encontrado." });
+
+    servidor.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
 }
 
 // Datos recibidos para registrar un servidor

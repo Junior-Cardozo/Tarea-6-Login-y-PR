@@ -109,6 +109,45 @@ public class SistemasOperativosController : ControllerBase
             }
         );
     }
+        // PUT: api/sistemas-operativos/1
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutSistemaOperativo(
+    int id, [FromBody] CrearSistemaOperativoDto datos)
+{
+    var sistema = await _context.SistemasOperativos
+        .FirstOrDefaultAsync(s => s.Id == id && s.Activo);
+
+    if (sistema == null)
+        return NotFound(new { mensaje = "Sistema operativo no encontrado." });
+
+    if (string.IsNullOrWhiteSpace(datos.Nombre))
+        return BadRequest(new { mensaje = "El nombre es obligatorio." });
+
+    sistema.Nombre = datos.Nombre.Trim();
+    sistema.Version = datos.Version;
+    sistema.Descripcion = datos.Descripcion;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
+
+// DELETE: api/sistemas-operativos/1
+[HttpDelete("{id:int}")]
+public async Task<IActionResult> DeleteSistemaOperativo(int id)
+{
+    var sistema = await _context.SistemasOperativos
+        .FirstOrDefaultAsync(s => s.Id == id && s.Activo);
+
+    if (sistema == null)
+        return NotFound(new { mensaje = "Sistema operativo no encontrado." });
+
+    sistema.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
 }
 
 
