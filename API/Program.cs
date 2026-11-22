@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using MonitorServidores.Data;
 using Scalar.AspNetCore;
 using System.Security.Claims;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,118 +29,161 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // =====================================================
-// 3. AUTENTICACIÓN CON TWITCH Y GOOGLE
+// 3. AUTENTICACIÓN CON TWITCH, GOOGLE, DISCORD Y SPOTIFY
 // =====================================================
 
-builder.Services
+var autenticacion = builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-
-    // -------------------------------------------------
-    // AUTENTICACIÓN MEDIANTE COOKIES
-    // -------------------------------------------------
-
     .AddCookie(options =>
     {
         options.Cookie.Name = "MonitorServidoresSesion";
         options.Cookie.HttpOnly = true;
-
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
         options.SlidingExpiration = true;
 
-        // Rechazar solicitudes sin autenticación
         options.Events.OnRedirectToLogin = context =>
         {
             context.Response.StatusCode = 401;
             return Task.CompletedTask;
         };
 
-        // Rechazar solicitudes sin permisos
         options.Events.OnRedirectToAccessDenied = context =>
         {
             context.Response.StatusCode = 403;
             return Task.CompletedTask;
         };
-    })
+    });
 
-    // -------------------------------------------------
-    // INICIO DE SESIÓN CON TWITCH
-    // -------------------------------------------------
+// =====================================================
+// TWITCH
+// =====================================================
 
-    .AddTwitch(options =>
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Twitch:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Twitch:ClientSecret"]))
+{
+    autenticacion.AddTwitch(options =>
     {
-        options.ClientId =
-            builder.Configuration["Authentication:Twitch:ClientId"]
-            ?? throw new InvalidOperationException(
-                "Falta el Client ID de Twitch.");
-
-        options.ClientSecret =
-            builder.Configuration["Authentication:Twitch:ClientSecret"]
-            ?? throw new InvalidOperationException(
-                "Falta el Client Secret de Twitch.");
-
+        options.ClientId = builder.Configuration["Authentication:Twitch:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Twitch:ClientSecret"]!;
         options.CallbackPath = "/signin-twitch";
-
-        options.SignInScheme =
-            CookieAuthenticationDefaults.AuthenticationScheme;
-
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.Scope.Add("user:read:email");
 
-        options.SaveTokens = false;
-
-        // Identificar el proveedor utilizado
         options.Events.OnTicketReceived = context =>
         {
             if (context.Principal?.Identity is ClaimsIdentity identity)
-            {
-                identity.AddClaim(
-                    new Claim("proveedor", "Twitch")
-                );
-            }
-
-            return Task.CompletedTask;
-        };
-    })
-
-    // -------------------------------------------------
-    // INICIO DE SESIÓN CON GOOGLE
-    // -------------------------------------------------
-
-    .AddGoogle("Google", options =>
-    {
-        options.ClientId =
-            builder.Configuration["Authentication:Google:ClientId"]
-            ?? throw new InvalidOperationException(
-                "Falta el Client ID de Google.");
-
-        options.ClientSecret =
-            builder.Configuration["Authentication:Google:ClientSecret"]
-            ?? throw new InvalidOperationException(
-                "Falta el Client Secret de Google.");
-
-        options.CallbackPath = "/signin-google";
-
-        options.SignInScheme =
-            CookieAuthenticationDefaults.AuthenticationScheme;
-
-        // Datos básicos de identidad
-        options.Scope.Add("profile");
-        options.Scope.Add("email");
-
-        options.SaveTokens = false;
-
-        // Identificar el proveedor utilizado
-        options.Events.OnTicketReceived = context =>
-        {
-            if (context.Principal?.Identity is ClaimsIdentity identity)
-            {
-                identity.AddClaim(
-                    new Claim("proveedor", "Google")
-                );
-            }
+                identity.AddClaim(new Claim("proveedor", "Twitch"));
 
             return Task.CompletedTask;
         };
     });
+}
+
+// =====================================================
+// GOOGLE
+// =====================================================
+
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Google:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Google:ClientSecret"]))
+{
+    autenticacion.AddGoogle("Google", options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        options.CallbackPath = "/signin-google";
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+
+        options.Events.OnTicketReceived = context =>
+        {
+            if (context.Principal?.Identity is ClaimsIdentity identity)
+                identity.AddClaim(new Claim("proveedor", "Google"));
+
+            return Task.CompletedTask;
+        };
+    });
+}
+
+// =====================================================
+// DISCORD
+// =====================================================
+
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Discord:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Discord:ClientSecret"]))
+{
+    autenticacion.AddDiscord(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Discord:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Discord:ClientSecret"]!;
+        options.CallbackPath = "/signin-discord";
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.Scope.Add("identify");
+        options.Scope.Add("email");
+
+        options.Events.OnTicketReceived = context =>
+        {
+            if (context.Principal?.Identity is ClaimsIdentity identity)
+                identity.AddClaim(new Claim("proveedor", "Discord"));
+
+            return Task.CompletedTask;
+        };
+    });
+}
+
+// =====================================================
+// SPOTIFY
+// =====================================================
+
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Spotify:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Spotify:ClientSecret"]))
+{
+    autenticacion.AddOAuth("Spotify", options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Spotify:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Spotify:ClientSecret"]!;
+
+        options.CallbackPath = "/signin-spotify";
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+        options.AuthorizationEndpoint = "https://accounts.spotify.com/authorize";
+        options.TokenEndpoint = "https://accounts.spotify.com/api/token";
+        options.UserInformationEndpoint = "https://api.spotify.com/v1/me";
+
+        options.Scope.Add("user-read-private");
+        options.Scope.Add("user-read-email");
+
+        options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "display_name");
+        options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+
+        options.Events.OnCreatingTicket = async context =>
+        {
+            var solicitud = new HttpRequestMessage(
+                HttpMethod.Get,
+                options.UserInformationEndpoint
+            );
+
+            solicitud.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    context.AccessToken
+                );
+
+            var respuesta = await context.Backchannel.SendAsync(solicitud);
+            respuesta.EnsureSuccessStatusCode();
+
+            using var usuario = JsonDocument.Parse(
+                await respuesta.Content.ReadAsStringAsync()
+            );
+
+            context.RunClaimActions(usuario.RootElement);
+
+            if (context.Identity is ClaimsIdentity identity)
+                identity.AddClaim(new Claim("proveedor", "Spotify"));
+        };
+    });
+}
 
 // =====================================================
 // 4. AUTORIZACIÓN
@@ -234,6 +279,14 @@ app.MapGet("/", () => Results.Content(
                 background-color: #4285f4;
             }
 
+            .discord {
+                background-color: #5865F2;
+            }
+
+            .spotify {
+                background-color: #1DB954;
+            }
+
             .logout {
                 background-color: #dc3545;
             }
@@ -264,6 +317,14 @@ app.MapGet("/", () => Results.Content(
 
             <a href="/login/google" class="boton google">
                 Iniciar sesión con Google
+            </a>
+
+            <a href="/login/discord" class="boton discord">
+                Iniciar sesión con Discord
+            </a>
+
+            <a href="/login/spotify" class="boton spotify">
+                Iniciar sesión con Spotify
             </a>
 
             <br>
@@ -322,7 +383,6 @@ app.MapGet("/", () => Results.Content(
             }
 
             consultarSesion();
-            
 
         </script>
 
@@ -339,10 +399,7 @@ app.MapGet("/", () => Results.Content(
 
 app.MapGet("/login/twitch", () =>
     Results.Challenge(
-        new AuthenticationProperties
-        {
-            RedirectUri = "/"
-        },
+        new AuthenticationProperties { RedirectUri = "/" },
         new[] { "Twitch" }
     )
 );
@@ -353,16 +410,35 @@ app.MapGet("/login/twitch", () =>
 
 app.MapGet("/login/google", () =>
     Results.Challenge(
-        new AuthenticationProperties
-        {
-            RedirectUri = "/"
-        },
+        new AuthenticationProperties { RedirectUri = "/" },
         new[] { "Google" }
     )
 );
 
 // =====================================================
-// 12. CONSULTAR USUARIO AUTENTICADO
+// 12. INICIAR SESIÓN CON DISCORD
+// =====================================================
+
+app.MapGet("/login/discord", () =>
+    Results.Challenge(
+        new AuthenticationProperties { RedirectUri = "/" },
+        new[] { "Discord" }
+    )
+);
+
+// =====================================================
+// 13. INICIAR SESIÓN CON SPOTIFY
+// =====================================================
+
+app.MapGet("/login/spotify", () =>
+    Results.Challenge(
+        new AuthenticationProperties { RedirectUri = "/" },
+        new[] { "Spotify" }
+    )
+);
+
+// =====================================================
+// 14. CONSULTAR USUARIO AUTENTICADO
 // =====================================================
 
 app.MapGet("/auth/usuario", (HttpContext context) =>
@@ -372,19 +448,15 @@ app.MapGet("/auth/usuario", (HttpContext context) =>
     return Results.Ok(new
     {
         Autenticado = usuario.Identity?.IsAuthenticated ?? false,
-
         Nombre = usuario.Identity?.Name,
-
-        Proveedor = usuario.FindFirst("proveedor")?.Value
-            ?? "Desconocido",
-
+        Proveedor = usuario.FindFirst("proveedor")?.Value ?? "Desconocido",
         Email = usuario.FindFirst(ClaimTypes.Email)?.Value
     });
 })
 .RequireAuthorization();
 
 // =====================================================
-// 13. CERRAR SESIÓN
+// 15. CERRAR SESIÓN
 // =====================================================
 
 app.MapPost("/logout", () =>
@@ -399,7 +471,6 @@ app.MapPost("/logout", () =>
         }
     )
 );
-
 
 app.MapControllers();
 
