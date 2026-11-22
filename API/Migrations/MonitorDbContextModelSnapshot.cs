@@ -34,6 +34,9 @@ namespace MonitorServidores.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("text");
@@ -136,6 +139,9 @@ namespace MonitorServidores.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("text");
@@ -228,6 +234,9 @@ namespace MonitorServidores.Migrations
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
