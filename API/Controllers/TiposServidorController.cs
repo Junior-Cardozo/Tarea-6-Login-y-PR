@@ -102,6 +102,44 @@ public class TiposServidorController : ControllerBase
             }
         );
     }
+          // PUT: api/tipos-servidor/1
+[HttpPut("{id:int}")]
+public async Task<IActionResult> PutTipoServidor(
+    int id, [FromBody] CrearTipoServidorDto datos)
+{
+    var tipo = await _context.TiposServidor
+        .FirstOrDefaultAsync(t => t.Id == id && t.Activo);
+
+    if (tipo == null)
+        return NotFound(new { mensaje = "Tipo de servidor no encontrado." });
+
+    if (string.IsNullOrWhiteSpace(datos.Nombre))
+        return BadRequest(new { mensaje = "El nombre es obligatorio." });
+
+    tipo.Nombre = datos.Nombre.Trim();
+    tipo.Descripcion = datos.Descripcion;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
+
+// DELETE: api/tipos-servidor/1
+   [HttpDelete("{id:int}")] 
+   public async Task<IActionResult> DeleteTipoServidor(int id)
+{
+    var tipo = await _context.TiposServidor
+        .FirstOrDefaultAsync(t => t.Id == id && t.Activo);
+
+    if (tipo == null)
+        return NotFound(new { mensaje = "Tipo de servidor no encontrado." });
+
+    tipo.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return NoContent();
+}
 }
 
 // Datos para registrar un tipo de servidor
