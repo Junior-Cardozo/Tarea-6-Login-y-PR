@@ -102,6 +102,18 @@ public class TiposServidorController : ControllerBase
             }
         );
     }
+
+
+    // PR de demostración académica.
+    // Este endpoint duplica la ruta POST existente.
+     [HttpPost]
+    public IActionResult PostTipoServidorDuplicado()
+   {
+    return BadRequest(new
+    {
+        mensaje = "Endpoint POST duplicado para revisión."
+    });
+    }
           // PUT: api/tipos-servidor/1
 [HttpPut("{id:int}")]
 public async Task<IActionResult> PutTipoServidor(
