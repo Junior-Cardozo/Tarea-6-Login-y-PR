@@ -172,6 +172,18 @@ public class ServidoresController : ControllerBase
     if (servidor == null)
         return NotFound(new { mensaje = "Servidor no encontrado." });
 
+        // Impedir desactivar servidores con monitoreos activos
+    var tieneMonitoreosActivos = await _context.Monitoreos
+    .AnyAsync(m => m.ServidorId == id && m.Activo);
+
+    if (tieneMonitoreosActivos)
+   {  
+    return Conflict(new
+    {
+        mensaje = "No se puede desactivar un servidor con monitoreos activos."
+    });
+    }
+
     servidor.Activo = false;
 
     await _context.SaveChangesAsync();
