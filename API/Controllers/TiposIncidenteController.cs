@@ -23,6 +23,7 @@ public class TiposIncidenteController : ControllerBase
     {
         var tipos = await _context.TiposIncidente
             .AsNoTracking()
+            .Where(t => !t.Eliminado)
             .OrderBy(t => t.Id)
             .ToListAsync();
 
@@ -34,7 +35,7 @@ public class TiposIncidenteController : ControllerBase
     {
         var tipo = await _context.TiposIncidente
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id && !t.Eliminado);
 
         if (tipo == null)
             return NotFound(new { mensaje = "Tipo de incidente no encontrado." });
@@ -52,17 +53,14 @@ public class TiposIncidenteController : ControllerBase
         var tipo = new TipoIncidente
         {
             Nombre = datos.Nombre.Trim(),
-            Descripcion = datos.Descripcion
+            Descripcion = datos.Descripcion,
+            Eliminado = false
         };
 
         _context.TiposIncidente.Add(tipo);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(
-            nameof(GetTipoIncidente),
-            new { id = tipo.Id },
-            tipo
-        );
+        return CreatedAtAction(nameof(GetTipoIncidente), new { id = tipo.Id }, tipo);
     }
 
     [HttpPut("{id:int}")]
@@ -70,10 +68,10 @@ public class TiposIncidenteController : ControllerBase
         int id, [FromBody] CrearTipoIncidenteDto datos)
     {
         var tipo = await _context.TiposIncidente
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id && !t.Eliminado);
 
         if (tipo == null)
-            return NotFound(new { mensaje = "Tipo de incidente no encontrado." });
+            return NotFound(new { mensaje = "Tipo de incidente no encontrado o eliminado." });
 
         if (string.IsNullOrWhiteSpace(datos.Nombre))
             return BadRequest(new { mensaje = "El nombre es obligatorio." });

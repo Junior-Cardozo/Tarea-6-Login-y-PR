@@ -23,6 +23,7 @@ public class PrioridadesIncidenteController : ControllerBase
     {
         var prioridades = await _context.PrioridadesIncidente
             .AsNoTracking()
+            .Where(p => !p.Eliminado)
             .OrderBy(p => p.Id)
             .ToListAsync();
 
@@ -70,10 +71,10 @@ public class PrioridadesIncidenteController : ControllerBase
         int id, [FromBody] CrearPrioridadIncidenteDto datos)
     {
         var prioridad = await _context.PrioridadesIncidente
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.Eliminado);
 
         if (prioridad == null)
-            return NotFound(new { mensaje = "Prioridad no encontrada." });
+            return NotFound(new { mensaje = "Prioridad no encontrada o eliminada." });
 
         if (string.IsNullOrWhiteSpace(datos.Nombre))
             return BadRequest(new { mensaje = "El nombre es obligatorio." });

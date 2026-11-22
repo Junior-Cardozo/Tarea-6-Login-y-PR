@@ -23,6 +23,7 @@ public class EstadosIncidenteController : ControllerBase
     {
         var estados = await _context.EstadosIncidente
             .AsNoTracking()
+            .Where(e => !e.Eliminado)
             .OrderBy(e => e.Id)
             .ToListAsync();
 
@@ -34,7 +35,7 @@ public class EstadosIncidenteController : ControllerBase
     {
         var estado = await _context.EstadosIncidente
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && !e.Eliminado);
 
         if (estado == null)
             return NotFound(new { mensaje = "Estado no encontrado." });
@@ -52,17 +53,14 @@ public class EstadosIncidenteController : ControllerBase
         var estado = new EstadoIncidente
         {
             Nombre = datos.Nombre.Trim(),
-            Descripcion = datos.Descripcion
+            Descripcion = datos.Descripcion,
+            Eliminado = false
         };
 
         _context.EstadosIncidente.Add(estado);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(
-            nameof(GetEstado),
-            new { id = estado.Id },
-            estado
-        );
+        return CreatedAtAction(nameof(GetEstado), new { id = estado.Id }, estado);
     }
 
     [HttpPut("{id:int}")]
@@ -70,10 +68,10 @@ public class EstadosIncidenteController : ControllerBase
         int id, [FromBody] CrearEstadoIncidenteDto datos)
     {
         var estado = await _context.EstadosIncidente
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && !e.Eliminado);
 
         if (estado == null)
-            return NotFound(new { mensaje = "Estado no encontrado." });
+            return NotFound(new { mensaje = "Estado no encontrado o eliminado." });
 
         if (string.IsNullOrWhiteSpace(datos.Nombre))
             return BadRequest(new { mensaje = "El nombre es obligatorio." });
