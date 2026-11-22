@@ -88,10 +88,10 @@ public class TiposIncidenteController : ControllerBase
     public async Task<IActionResult> DeleteTipoIncidente(int id)
     {
         var tipo = await _context.TiposIncidente
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id && !t.Eliminado);
 
         if (tipo == null)
-            return NotFound(new { mensaje = "Tipo de incidente no encontrado." });
+            return NotFound(new { mensaje = "Tipo de incidente no encontrado o eliminado." });
 
         var tieneIncidentes = await _context.Incidentes
             .AnyAsync(i => i.TipoIncidenteId == id && !i.Eliminado);
@@ -99,7 +99,7 @@ public class TiposIncidenteController : ControllerBase
         if (tieneIncidentes)
             return Conflict(new { mensaje = "No se puede eliminar un tipo que tiene incidentes activos." });
 
-        _context.TiposIncidente.Remove(tipo);
+        tipo.Eliminado = true;
         await _context.SaveChangesAsync();
 
         return NoContent();

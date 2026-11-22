@@ -35,7 +35,7 @@ public class PrioridadesIncidenteController : ControllerBase
     {
         var prioridad = await _context.PrioridadesIncidente
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.Eliminado);
 
         if (prioridad == null)
             return NotFound(new { mensaje = "Prioridad no encontrada." });
@@ -53,17 +53,14 @@ public class PrioridadesIncidenteController : ControllerBase
         var prioridad = new PrioridadIncidente
         {
             Nombre = datos.Nombre.Trim(),
-            Descripcion = datos.Descripcion
+            Descripcion = datos.Descripcion,
+            Eliminado = false
         };
 
         _context.PrioridadesIncidente.Add(prioridad);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(
-            nameof(GetPrioridad),
-            new { id = prioridad.Id },
-            prioridad
-        );
+        return CreatedAtAction(nameof(GetPrioridad), new { id = prioridad.Id }, prioridad);
     }
 
     [HttpPut("{id:int}")]
@@ -91,10 +88,10 @@ public class PrioridadesIncidenteController : ControllerBase
     public async Task<IActionResult> DeletePrioridad(int id)
     {
         var prioridad = await _context.PrioridadesIncidente
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id && !p.Eliminado);
 
         if (prioridad == null)
-            return NotFound(new { mensaje = "Prioridad no encontrada." });
+            return NotFound(new { mensaje = "Prioridad no encontrada o eliminada." });
 
         var tieneIncidentes = await _context.Incidentes
             .AnyAsync(i => i.PrioridadIncidenteId == id && !i.Eliminado);
@@ -102,7 +99,7 @@ public class PrioridadesIncidenteController : ControllerBase
         if (tieneIncidentes)
             return Conflict(new { mensaje = "No se puede eliminar una prioridad que tiene incidentes activos." });
 
-        _context.PrioridadesIncidente.Remove(prioridad);
+        prioridad.Eliminado = true;
         await _context.SaveChangesAsync();
 
         return NoContent();

@@ -88,10 +88,10 @@ public class EstadosIncidenteController : ControllerBase
     public async Task<IActionResult> DeleteEstado(int id)
     {
         var estado = await _context.EstadosIncidente
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && !e.Eliminado);
 
         if (estado == null)
-            return NotFound(new { mensaje = "Estado no encontrado." });
+            return NotFound(new { mensaje = "Estado no encontrado o eliminado." });
 
         var tieneIncidentes = await _context.Incidentes
             .AnyAsync(i => i.EstadoIncidenteId == id && !i.Eliminado);
@@ -99,7 +99,7 @@ public class EstadosIncidenteController : ControllerBase
         if (tieneIncidentes)
             return Conflict(new { mensaje = "No se puede eliminar un estado que tiene incidentes activos." });
 
-        _context.EstadosIncidente.Remove(estado);
+        estado.Eliminado = true;
         await _context.SaveChangesAsync();
 
         return NoContent();
