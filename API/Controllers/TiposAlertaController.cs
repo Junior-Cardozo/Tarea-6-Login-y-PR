@@ -92,6 +92,82 @@ public class TiposAlertaController : ControllerBase
             tipo
         );
     }
+
+// PUT: api/tipos-alerta/5
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutTipoAlerta(int id, [FromBody] ActualizarTipoAlertaDto datos)
+    {
+    if (string.IsNullOrWhiteSpace(datos.Nombre))
+    {
+        return BadRequest("El nombre del tipo de alerta es obligatorio.");
+    }
+
+    if (datos.Nombre.Trim().Length > 100)
+    {
+        return BadRequest("El nombre no puede superar los 100 caracteres.");
+    }
+
+    if (datos.Descripcion?.Length > 300)
+    {
+        return BadRequest("La descripción no puede superar los 300 caracteres.");
+    }
+
+    var tipoAlerta = await _context.TiposAlerta
+        .FirstOrDefaultAsync(t => t.Id == id && t.Activo);
+
+    if (tipoAlerta == null)
+    {
+        return NotFound("Tipo de alerta no encontrado o inactivo.");
+    }
+
+    tipoAlerta.Nombre = datos.Nombre.Trim();
+    tipoAlerta.Descripcion = string.IsNullOrWhiteSpace(datos.Descripcion)
+        ? null
+        : datos.Descripcion.Trim();
+
+    await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+        mensaje = "Tipo de alerta actualizado correctamente.",
+        tipoAlerta.Id,
+        tipoAlerta.Nombre,
+        tipoAlerta.Descripcion
+        });
+    }
+
+// DELETE lógico: api/tipos-alerta/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteTipoAlerta(int id)
+    {
+    var tipoAlerta = await _context.TiposAlerta
+        .FirstOrDefaultAsync(t => t.Id == id && t.Activo);
+
+    if (tipoAlerta == null)
+    {
+        return NotFound("Tipo de alerta no encontrado o ya está inactivo.");
+    }
+
+    tipoAlerta.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+        mensaje = "Tipo de alerta desactivado correctamente.",
+        tipoAlerta.Id,
+        tipoAlerta.Nombre,
+        tipoAlerta.Activo
+        });
+    }
+
+}
+
+
+public class ActualizarTipoAlertaDto
+{
+    public string Nombre { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
 }
 
 public class CrearTipoAlertaDto
