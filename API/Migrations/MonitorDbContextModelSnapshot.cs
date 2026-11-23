@@ -22,6 +22,44 @@ namespace MonitorServidores.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MonitorServidores.Models.Alerta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ServidorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TipoAlertaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServidorId");
+
+                    b.HasIndex("TipoAlertaId");
+
+                    b.ToTable("alertas");
+                });
+
             modelBuilder.Entity("MonitorServidores.Models.EstadoIncidente", b =>
                 {
                     b.Property<int>("Id")
@@ -44,6 +82,39 @@ namespace MonitorServidores.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("EstadosIncidente");
+                });
+
+            modelBuilder.Entity("MonitorServidores.Models.HistorialAlerta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Accion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("AlertaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Detalle")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertaId");
+
+                    b.ToTable("historial_alertas");
                 });
 
             modelBuilder.Entity("MonitorServidores.Models.Incidente", b =>
@@ -125,6 +196,43 @@ namespace MonitorServidores.Migrations
                     b.HasIndex("ServidorId");
 
                     b.ToTable("monitoreos");
+                });
+
+            modelBuilder.Entity("MonitorServidores.Models.Notificacion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("AlertaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Canal")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("Enviada")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertaId");
+
+                    b.ToTable("notificaciones");
                 });
 
             modelBuilder.Entity("MonitorServidores.Models.PrioridadIncidente", b =>
@@ -223,6 +331,31 @@ namespace MonitorServidores.Migrations
                     b.ToTable("sistemas_operativos");
                 });
 
+            modelBuilder.Entity("MonitorServidores.Models.TipoAlerta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tipos_alerta");
+                });
+
             modelBuilder.Entity("MonitorServidores.Models.TipoIncidente", b =>
                 {
                     b.Property<int>("Id")
@@ -272,6 +405,36 @@ namespace MonitorServidores.Migrations
                     b.ToTable("tipos_servidor");
                 });
 
+            modelBuilder.Entity("MonitorServidores.Models.Alerta", b =>
+                {
+                    b.HasOne("MonitorServidores.Models.Servidor", "Servidor")
+                        .WithMany()
+                        .HasForeignKey("ServidorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MonitorServidores.Models.TipoAlerta", "TipoAlerta")
+                        .WithMany("Alertas")
+                        .HasForeignKey("TipoAlertaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Servidor");
+
+                    b.Navigation("TipoAlerta");
+                });
+
+            modelBuilder.Entity("MonitorServidores.Models.HistorialAlerta", b =>
+                {
+                    b.HasOne("MonitorServidores.Models.Alerta", "Alerta")
+                        .WithMany("Historial")
+                        .HasForeignKey("AlertaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Alerta");
+                });
+
             modelBuilder.Entity("MonitorServidores.Models.Incidente", b =>
                 {
                     b.HasOne("MonitorServidores.Models.EstadoIncidente", "EstadoIncidente")
@@ -318,6 +481,17 @@ namespace MonitorServidores.Migrations
                     b.Navigation("Servidor");
                 });
 
+            modelBuilder.Entity("MonitorServidores.Models.Notificacion", b =>
+                {
+                    b.HasOne("MonitorServidores.Models.Alerta", "Alerta")
+                        .WithMany("Notificaciones")
+                        .HasForeignKey("AlertaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Alerta");
+                });
+
             modelBuilder.Entity("MonitorServidores.Models.Servidor", b =>
                 {
                     b.HasOne("MonitorServidores.Models.SistemaOperativo", "SistemaOperativo")
@@ -333,6 +507,13 @@ namespace MonitorServidores.Migrations
                     b.Navigation("SistemaOperativo");
 
                     b.Navigation("TipoServidor");
+                });
+
+            modelBuilder.Entity("MonitorServidores.Models.Alerta", b =>
+                {
+                    b.Navigation("Historial");
+
+                    b.Navigation("Notificaciones");
                 });
 
             modelBuilder.Entity("MonitorServidores.Models.EstadoIncidente", b =>
@@ -353,6 +534,11 @@ namespace MonitorServidores.Migrations
             modelBuilder.Entity("MonitorServidores.Models.SistemaOperativo", b =>
                 {
                     b.Navigation("Servidores");
+                });
+
+            modelBuilder.Entity("MonitorServidores.Models.TipoAlerta", b =>
+                {
+                    b.Navigation("Alertas");
                 });
 
             modelBuilder.Entity("MonitorServidores.Models.TipoIncidente", b =>
