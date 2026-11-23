@@ -173,14 +173,40 @@ public class NotificacionesController : ControllerBase
     await _context.SaveChangesAsync();
 
     return Ok(new
-    {
+        {
         mensaje = "Notificación actualizada correctamente.",
-        notificacion.Id,
-        notificacion.Mensaje,
-        notificacion.Canal,
-        notificacion.AlertaId
-    });
-}
+        id = notificacion.Id,
+        mensajeNotificacion = notificacion.Mensaje,
+        canal = notificacion.Canal,
+        alertaId = notificacion.AlertaId
+        });
+    }
+
+
+// DELETE lógico: api/notificaciones/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteNotificacion(int id)
+    {
+    var notificacion = await _context.Notificaciones
+        .FirstOrDefaultAsync(n => n.Id == id && n.Activo);
+
+    if (notificacion == null)
+    {
+        return NotFound("Notificación no encontrada o ya está inactiva.");
+    }
+
+    notificacion.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+        {
+        mensaje = "Notificación desactivada correctamente.",
+        id = notificacion.Id,
+        mensajeNotificacion = notificacion.Mensaje,
+        activo = notificacion.Activo
+        });
+    }
 
 }
 

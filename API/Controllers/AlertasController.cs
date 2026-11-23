@@ -176,16 +176,41 @@ public class AlertasController : ControllerBase
 
     await _context.SaveChangesAsync();
 
-    return Ok(new
-    {
+        return Ok(new
+        {
         mensaje = "Alerta actualizada correctamente.",
         alerta.Id,
         alerta.Titulo,
         alerta.Descripcion,
         alerta.ServidorId,
         alerta.TipoAlertaId
-    });
-}
+        });
+    }
+
+// DELETE lógico: api/alertas/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteAlerta(int id)
+    {
+    var alerta = await _context.Alertas
+        .FirstOrDefaultAsync(a => a.Id == id && a.Activo);
+
+    if (alerta == null)
+    {
+        return NotFound("Alerta no encontrada o ya está inactiva.");
+    }
+
+    alerta.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+        mensaje = "Alerta desactivada correctamente.",
+        alerta.Id,
+        alerta.Titulo,
+        alerta.Activo
+        });
+    }
 
 }
 

@@ -127,14 +127,39 @@ public class TiposAlertaController : ControllerBase
 
     await _context.SaveChangesAsync();
 
-    return Ok(new
-    {
+        return Ok(new
+        {
         mensaje = "Tipo de alerta actualizado correctamente.",
         tipoAlerta.Id,
         tipoAlerta.Nombre,
         tipoAlerta.Descripcion
-    });
-}
+        });
+    }
+
+// DELETE lógico: api/tipos-alerta/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteTipoAlerta(int id)
+    {
+    var tipoAlerta = await _context.TiposAlerta
+        .FirstOrDefaultAsync(t => t.Id == id && t.Activo);
+
+    if (tipoAlerta == null)
+    {
+        return NotFound("Tipo de alerta no encontrado o ya está inactivo.");
+    }
+
+    tipoAlerta.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+        mensaje = "Tipo de alerta desactivado correctamente.",
+        tipoAlerta.Id,
+        tipoAlerta.Nombre,
+        tipoAlerta.Activo
+        });
+    }
 
 }
 

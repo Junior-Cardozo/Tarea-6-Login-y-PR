@@ -156,18 +156,40 @@ public class HistorialAlertasController : ControllerBase
     await _context.SaveChangesAsync();
 
     return Ok(new
-    {
+        {
         mensaje = "Registro de historial actualizado correctamente.",
         historial.Id,
         historial.Accion,
         historial.Detalle,
         historial.AlertaId
-    });
+        });
+    }
+
+// DELETE lógico: api/historial-alertas/5
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteHistorialAlerta(int id)
+    {
+    var historial = await _context.HistorialAlertas
+        .FirstOrDefaultAsync(h => h.Id == id && h.Activo);
+
+    if (historial == null)
+    {
+        return NotFound("Registro de historial no encontrado o ya está inactivo.");
+    }
+
+    historial.Activo = false;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+        {
+        mensaje = "Registro de historial desactivado correctamente.",
+        historial.Id,
+        historial.Accion,
+        historial.Activo
+        });
+    }
 }
-
-}
-
-
 public class ActualizarHistorialAlertaDto
 {
     public string Accion { get; set; } = string.Empty;
