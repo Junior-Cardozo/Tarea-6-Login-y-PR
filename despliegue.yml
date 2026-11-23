@@ -13,6 +13,12 @@ services:
       Authentication__Discord__ClientSecret: ${DISCORD_CLIENT_SECRET}
       Authentication__Spotify__ClientId: ${SPOTIFY_CLIENT_ID}
       Authentication__Spotify__ClientSecret: ${SPOTIFY_CLIENT_SECRET}
+      Authentication__Dropbox__ClientId: ${DROPBOX_CLIENT_ID}
+      Authentication__Dropbox__ClientSecret: ${DROPBOX_CLIENT_SECRET}
+      Authentication__Slack__ClientId: ${SLACK_CLIENT_ID}
+      Authentication__Slack__ClientSecret: ${SLACK_CLIENT_SECRET}
+      DROPBOX_REDIRECT_URI: ${DROPBOX_REDIRECT_URI}
+      SLACK_REDIRECT_URI: ${SLACK_REDIRECT_URI}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using MonitorServidores.Data;
 using Scalar.AspNetCore;
@@ -28,9 +29,9 @@ builder.Services.AddDbContext<MonitorDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// =====================================================
-// 3. AUTENTICACIÓN CON TWITCH, GOOGLE, DISCORD Y SPOTIFY
-// =====================================================
+// ======================================================================
+// 3. AUTENTICACIÓN CON TWITCH, GOOGLE, DISCORD, SPOTIFY, DROPBOX Y SLACK
+// ======================================================================
 
 var autenticacion = builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -186,6 +187,118 @@ if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Spotify:ClientId
 }
 
 // =====================================================
+// DROPBOX
+// =====================================================
+
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Dropbox:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Dropbox:ClientSecret"]))
+{
+    autenticacion.AddOpenIdConnect("Dropbox", options =>
+    {
+        options.Authority = "https://www.dropbox.com";
+        options.ClientId = builder.Configuration["Authentication:Dropbox:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Dropbox:ClientSecret"]!;
+
+        options.CallbackPath = "/signin-dropbox";
+        options.ResponseType = "code";
+        options.UsePkce = false;
+
+        // Dropbox no devuelve el claim nonce en su ID Token.
+        options.ProtocolValidator.RequireNonce = false;
+
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.SaveTokens = true;
+
+        // Dropbox incluye los datos de identidad en el ID Token.
+        options.GetClaimsFromUserInfoEndpoint = false;
+        options.Events.OnRedirectToIdentityProvider = context =>
+        {
+        context.ProtocolMessage.RedirectUri = builder.Configuration["DROPBOX_REDIRECT_URI"]
+            ?? "http://localhost:8081/signin-dropbox";
+
+        return Task.CompletedTask;
+        };
+
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+
+        options.Events.OnTokenValidated = context =>
+        {
+            if (context.Principal?.Identity is ClaimsIdentity identity)
+            {
+                identity.AddClaim(new Claim("proveedor", "Dropbox"));
+
+                var nombre = identity.FindFirst(ClaimTypes.Name)?.Value;
+
+                if (string.IsNullOrWhiteSpace(nombre))
+                {
+                    var nombrePila = identity.FindFirst(ClaimTypes.GivenName)?.Value
+                        ?? identity.FindFirst("given_name")?.Value;
+
+                    var apellido = identity.FindFirst(ClaimTypes.Surname)?.Value
+                        ?? identity.FindFirst("family_name")?.Value;
+
+                    var nombreCompleto = $"{nombrePila} {apellido}".Trim();
+
+                    if (!string.IsNullOrWhiteSpace(nombreCompleto))
+                    {
+                        identity.AddClaim(new Claim(ClaimTypes.Name, nombreCompleto));
+                    }
+                }
+            }
+
+            return Task.CompletedTask;
+        };
+    });
+}
+
+// =====================================================
+// SLACK
+// =====================================================
+
+if (!string.IsNullOrEmpty(builder.Configuration["Authentication:Slack:ClientId"])
+    && !string.IsNullOrEmpty(builder.Configuration["Authentication:Slack:ClientSecret"]))
+{
+    autenticacion.AddOpenIdConnect("Slack", options =>
+    {
+        options.Authority = "https://slack.com";
+        options.ClientId = builder.Configuration["Authentication:Slack:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Slack:ClientSecret"]!;
+
+        options.CallbackPath = "/signin-slack";
+        options.ResponseType = "code";
+        options.ResponseMode = "query";
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.SaveTokens = true;
+        options.GetClaimsFromUserInfoEndpoint = false;
+
+        options.Events.OnRedirectToIdentityProvider = context =>
+        {
+        context.ProtocolMessage.RedirectUri = builder.Configuration["SLACK_REDIRECT_URI"]
+            ?? "https://localhost:8443/signin-slack";
+
+        return Task.CompletedTask;
+        };
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+
+        options.Events.OnTokenValidated = context =>
+        {
+            if (context.Principal?.Identity is ClaimsIdentity identity)
+            {
+                identity.AddClaim(new Claim("proveedor", "Slack"));
+            }
+
+            return Task.CompletedTask;
+        };
+    });
+}
+
+// =====================================================
 // 4. AUTORIZACIÓN
 // =====================================================
 
@@ -287,6 +400,14 @@ app.MapGet("/", () => Results.Content(
                 background-color: #1DB954;
             }
 
+            .dropbox {
+                background-color: #0061FF;
+            }
+
+            .slack {
+                background-color: #611f69;
+            }
+
             .logout {
                 background-color: #dc3545;
             }
@@ -325,6 +446,14 @@ app.MapGet("/", () => Results.Content(
 
             <a href="/login/spotify" class="boton spotify">
                 Iniciar sesión con Spotify
+            </a>
+
+            <a href="/login/dropbox" class="boton dropbox">
+                Iniciar sesión con Dropbox
+            </a>
+
+            <a href="/login/slack" class="boton slack">
+                Iniciar sesión con Slack
             </a>
 
             <br>
@@ -434,6 +563,28 @@ app.MapGet("/login/spotify", () =>
     Results.Challenge(
         new AuthenticationProperties { RedirectUri = "/" },
         new[] { "Spotify" }
+    )
+);
+
+// =====================================================
+// INICIAR SESIÓN CON DROPBOX
+// =====================================================
+
+app.MapGet("/login/dropbox", () =>
+    Results.Challenge(
+        new AuthenticationProperties { RedirectUri = "/" },
+        new[] { "Dropbox" }
+    )
+);
+
+// =====================================================
+// INICIAR SESIÓN CON SLACK
+// =====================================================
+
+app.MapGet("/login/slack", () =>
+    Results.Challenge(
+        new AuthenticationProperties { RedirectUri = "/" },
+        new[] { "Slack" }
     )
 );
 
