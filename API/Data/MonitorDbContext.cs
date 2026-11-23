@@ -22,6 +22,12 @@ public class MonitorDbContext : DbContext
     public DbSet<PrioridadIncidente> PrioridadesIncidente { get; set; }
     public DbSet<EstadoIncidente> EstadosIncidente { get; set; }
 
+    // Tablas del Modulo de alertas de Diego
+    public DbSet<Alerta> Alertas { get; set; }
+    public DbSet<TipoAlerta> TiposAlerta { get; set; }
+    public DbSet<Notificacion> Notificaciones { get; set; }
+    public DbSet<HistorialAlerta> HistorialAlertas { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -70,6 +76,31 @@ public class MonitorDbContext : DbContext
             .HasOne(i => i.EstadoIncidente)
             .WithMany(e => e.Incidentes)
             .HasForeignKey(i => i.EstadoIncidenteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Modulo de alertas
+        modelBuilder.Entity<Alerta>()
+            .HasOne(a => a.Servidor)
+            .WithMany()
+            .HasForeignKey(a => a.ServidorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Alerta>()
+            .HasOne(a => a.TipoAlerta)
+            .WithMany(t => t.Alertas)
+            .HasForeignKey(a => a.TipoAlertaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Notificacion>()
+            .HasOne(n => n.Alerta)
+            .WithMany(a => a.Notificaciones)
+            .HasForeignKey(n => n.AlertaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<HistorialAlerta>()
+            .HasOne(h => h.Alerta)
+            .WithMany(a => a.Historial)
+            .HasForeignKey(h => h.AlertaId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
