@@ -123,8 +123,13 @@ public class AlertasController : ControllerBase
             alerta
         );
     }
+    // POST duplicado intencional para la práctica del punto 4.
+    [HttpPost]
+    public IActionResult CrearAlertaDuplicada()
+    {
+        return Ok("Endpoint duplicado de prueba");
+    }
 }
-
 public class CrearAlertaDto
 {
     public string Titulo { get; set; } = string.Empty;
