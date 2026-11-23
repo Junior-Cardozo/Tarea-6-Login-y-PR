@@ -123,6 +123,73 @@ public class NotificacionesController : ControllerBase
             notificacion
         );
     }
+
+// PUT: api/notificaciones/5
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutNotificacion(
+    int id,
+    [FromBody] ActualizarNotificacionDto datos)
+    {
+    if (string.IsNullOrWhiteSpace(datos.Mensaje))
+    {
+        return BadRequest("El mensaje de la notificación es obligatorio.");
+    }
+
+    if (datos.Mensaje.Trim().Length > 500)
+    {
+        return BadRequest("El mensaje no puede superar los 500 caracteres.");
+    }
+
+    if (string.IsNullOrWhiteSpace(datos.Canal))
+    {
+        return BadRequest("El canal es obligatorio.");
+    }
+
+    if (datos.Canal.Trim().Length > 50)
+    {
+        return BadRequest("El canal no puede superar los 50 caracteres.");
+    }
+
+    var notificacion = await _context.Notificaciones
+        .FirstOrDefaultAsync(n => n.Id == id && n.Activo);
+
+    if (notificacion == null)
+    {
+        return NotFound("Notificación no encontrada o inactiva.");
+    }
+
+    var alertaExiste = await _context.Alertas
+        .AnyAsync(a => a.Id == datos.AlertaId && a.Activo);
+
+    if (!alertaExiste)
+    {
+        return BadRequest("La alerta no existe o está inactiva.");
+    }
+
+    notificacion.Mensaje = datos.Mensaje.Trim();
+    notificacion.Canal = datos.Canal.Trim();
+    notificacion.AlertaId = datos.AlertaId;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        mensaje = "Notificación actualizada correctamente.",
+        notificacion.Id,
+        notificacion.Mensaje,
+        notificacion.Canal,
+        notificacion.AlertaId
+    });
+}
+
+}
+
+
+public class ActualizarNotificacionDto
+{
+    public string Mensaje { get; set; } = string.Empty;
+    public string Canal { get; set; } = string.Empty;
+    public int AlertaId { get; set; }
 }
 
 public class CrearNotificacionDto

@@ -123,6 +123,79 @@ public class AlertasController : ControllerBase
             alerta
         );
     }
+
+// PUT: api/alertas/5
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutAlerta(int id, [FromBody] ActualizarAlertaDto datos)
+    {
+    if (string.IsNullOrWhiteSpace(datos.Titulo))
+    {
+        return BadRequest("El título de la alerta es obligatorio.");
+    }
+
+    if (datos.Titulo.Trim().Length > 150)
+    {
+        return BadRequest("El título no puede superar los 150 caracteres.");
+    }
+
+    if (datos.Descripcion?.Length > 500)
+    {
+        return BadRequest("La descripción no puede superar los 500 caracteres.");
+    }
+
+    var alerta = await _context.Alertas
+        .FirstOrDefaultAsync(a => a.Id == id && a.Activo);
+
+    if (alerta == null)
+    {
+        return NotFound("Alerta no encontrada o inactiva.");
+    }
+
+    var servidorExiste = await _context.Servidores
+        .AnyAsync(s => s.Id == datos.ServidorId && s.Activo);
+
+    if (!servidorExiste)
+    {
+        return BadRequest("El servidor no existe o está inactivo.");
+    }
+
+    var tipoAlertaExiste = await _context.TiposAlerta
+        .AnyAsync(t => t.Id == datos.TipoAlertaId && t.Activo);
+
+    if (!tipoAlertaExiste)
+    {
+        return BadRequest("El tipo de alerta no existe o está inactivo.");
+    }
+
+    alerta.Titulo = datos.Titulo.Trim();
+    alerta.Descripcion = string.IsNullOrWhiteSpace(datos.Descripcion)
+        ? null
+        : datos.Descripcion.Trim();
+    alerta.ServidorId = datos.ServidorId;
+    alerta.TipoAlertaId = datos.TipoAlertaId;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        mensaje = "Alerta actualizada correctamente.",
+        alerta.Id,
+        alerta.Titulo,
+        alerta.Descripcion,
+        alerta.ServidorId,
+        alerta.TipoAlertaId
+    });
+}
+
+}
+
+
+public class ActualizarAlertaDto
+{
+    public string Titulo { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
+    public int ServidorId { get; set; }
+    public int TipoAlertaId { get; set; }
 }
 
 public class CrearAlertaDto

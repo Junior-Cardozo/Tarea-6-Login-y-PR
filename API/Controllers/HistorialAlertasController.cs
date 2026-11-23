@@ -109,6 +109,70 @@ public class HistorialAlertasController : ControllerBase
             historial
         );
     }
+
+// PUT: api/historial-alertas/5
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutHistorialAlerta(
+    int id,
+    [FromBody] ActualizarHistorialAlertaDto datos)
+    {
+    if (string.IsNullOrWhiteSpace(datos.Accion))
+    {
+        return BadRequest("La acción es obligatoria.");
+    }
+
+    if (datos.Accion.Trim().Length > 100)
+    {
+        return BadRequest("La acción no puede superar los 100 caracteres.");
+    }
+
+    if (datos.Detalle?.Length > 500)
+    {
+        return BadRequest("El detalle no puede superar los 500 caracteres.");
+    }
+
+    var historial = await _context.HistorialAlertas
+        .FirstOrDefaultAsync(h => h.Id == id && h.Activo);
+
+    if (historial == null)
+    {
+        return NotFound("Registro de historial no encontrado o inactivo.");
+    }
+
+    var alertaExiste = await _context.Alertas
+        .AnyAsync(a => a.Id == datos.AlertaId && a.Activo);
+
+    if (!alertaExiste)
+    {
+        return BadRequest("La alerta no existe o está inactiva.");
+    }
+
+    historial.Accion = datos.Accion.Trim();
+    historial.Detalle = string.IsNullOrWhiteSpace(datos.Detalle)
+        ? null
+        : datos.Detalle.Trim();
+    historial.AlertaId = datos.AlertaId;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        mensaje = "Registro de historial actualizado correctamente.",
+        historial.Id,
+        historial.Accion,
+        historial.Detalle,
+        historial.AlertaId
+    });
+}
+
+}
+
+
+public class ActualizarHistorialAlertaDto
+{
+    public string Accion { get; set; } = string.Empty;
+    public string? Detalle { get; set; }
+    public int AlertaId { get; set; }
 }
 
 public class CrearHistorialAlertaDto
